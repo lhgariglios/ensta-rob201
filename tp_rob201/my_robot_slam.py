@@ -50,7 +50,8 @@ class MyRobotSlam(RobotAbstract):
         """
         Main control function executed at each time step
         """
-        return self.control_tp1()
+
+        return self.control_tp2()
 
     def control_tp1(self):
         """
@@ -69,9 +70,27 @@ class MyRobotSlam(RobotAbstract):
         Main control function with full SLAM, random exploration and path planning
         """
         pose = self.odometer_values()
-        goal = [0,0,0]
 
-        # Compute new command speed to perform obstacle avoidance
-        command = potential_field_control(self.lidar(), pose, goal)
+        self.tiny_slam.update_map(self.lidar(), pose)
+        np.clip(self.occupancy_grid.occupancy_map, -40, 40, out=self.occupancy_grid.occupancy_map)
+
+               
+        if not hasattr(self, 'current_goal'):
+            self.current_goal = np.array([
+                            -160, 0.0,
+                            0.0
+                        ]) 
+        elif np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0:
+            self.current_goal += np.array([
+                        np.random.uniform(-50, 50), 
+                        np.random.uniform(-50, 50), 
+                        0.0
+                    ])
+        
+        command = potential_field_control(self.lidar(), pose, self.current_goal)
+
+        self.counter += 1
+        if self.counter % 10 == 0:
+            self.occupancy_grid.display_plt(pose, self.current_goal)
 
         return command

@@ -56,6 +56,20 @@ class TinySlam:
         Bayesian map update with new observation
         lidar : placebot object with lidar data
         pose : [x, y, theta] nparray, corrected pose in world coordinates
-        """
-        # TODO for TP3
+        """ 
+
+        x_list = np.cos(lidar.get_ray_angles() + pose[2]) * lidar.get_sensor_values() + pose[0]
+        y_list = np.sin(lidar.get_ray_angles() + pose[2]) * lidar.get_sensor_values() + pose[1]
+
+        for x,y in zip(x_list, y_list):
+            self.grid.add_value_along_line(pose[0], pose[1], x, y, val=-0.95)
+            
+        self.grid.add_map_points(x_list,y_list,val = 1.99)
+        self.grid.add_map_points(x_list+0.5,y_list+0.5,val = 1)
+        self.grid.add_map_points(x_list-0.5,y_list-0.5,val = 1)
+
+
+        
+
+
 
