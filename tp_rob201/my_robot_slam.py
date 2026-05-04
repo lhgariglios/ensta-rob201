@@ -46,6 +46,10 @@ class MyRobotSlam(RobotAbstract):
         # storage for pose after localization
         self.corrected_pose = np.array([0, 0, 0])
 
+        # path planning
+        self.path = None
+        self.path_index = 0
+
     def control(self):
         """
         Main control function executed at each time step
@@ -81,6 +85,14 @@ class MyRobotSlam(RobotAbstract):
 
             self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
 
+            # Plan path to the new goal
+            self.path = self.planner.plan(pose, self.current_goal)
+            if self.path is not None:
+                self.path = self.path.T
+                self.path_index = 0
+            else:
+                self.path = None
+
         elif np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0:
 
             ranges = self.lidar().get_sensor_values()
@@ -107,10 +119,33 @@ class MyRobotSlam(RobotAbstract):
 
             self.current_goal = np.array([x, y, 0])
 
-        command = potential_field_control(self.lidar(), pose, self.current_goal)
+            # Plan path to the new goal
+            self.path = self.planner.plan(pose, self.current_goal)
+            if self.path is not None:
+                self.path = self.path.T
+                self.path_index = 0
+            else:
+                self.path = None
+
+        if self.path is not None and self.path_index < len(self.path):
+            target = self.path[self.path_index]
+            if np.linalg.norm(target - pose[:2]) < 5.0:  # close to waypoint
+                self.path_index += 1
+            if self.path_index < len(self.path):
+                target = self.path[self.path_index]
+            else:
+                target = self.current_goal[:2]  # end of path, go to goal
+
+            target_pose = np.array([target[0], target[1], 0.0])
+            command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=5.0)
+        else:
+            target = self.current_goal[:2]
+            target_pose = np.array([target[0], target[1], 0.0])
+            command = potential_field_control(self.lidar(), pose, target_pose)
 
         self.counter += 1
         if self.counter % 10 == 0:
-            self.occupancy_grid.display_cv(pose, self.current_goal)
+            traj = self.path.T if self.path is not None else None
+            self.occupancy_grid.display_cv(pose, self.current_goal, traj)
 
         return command

@@ -31,12 +31,13 @@ def reactive_obst_avoid(lidar):
     return command
 
 
-def potential_field_control(lidar, current_pose, goal_pose):
+def potential_field_control(lidar, current_pose, goal_pose, stop_dist: float = 20.0):
     """
     Control using potential field for goal reaching and obstacle avoidance
     lidar : placebot object with lidar data
     current_pose : [x, y, theta] nparray, current pose in odom or world frame
     goal_pose : [x, y, theta] nparray, target pose in odom or world frame
+    stop_dist : distance threshold at which the robot stops for the current goal
     Notes: As lidar and odom are local only data, goal and gradient will be defined either in
     robot (x,y) frame (centered on robot, x forward, y on left) or in odom (centered / aligned
     on initial pose, x forward, y on left)
@@ -48,7 +49,6 @@ def potential_field_control(lidar, current_pose, goal_pose):
     K_obst = 8000
     safe_dist = 20.0
     d_trans = 40.0
-    stop_dist = 20.0
 
     curr_p = current_pose[:2]
     goal_p = goal_pose[:2]

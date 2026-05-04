@@ -114,22 +114,18 @@ class TinySlam:
         ranges = ranges[mask]
         angles = angles[mask]
 
-        x_list = np.cos(lidar.get_ray_angles() + pose[2]) * lidar.get_sensor_values() + pose[0]
-        y_list = np.sin(lidar.get_ray_angles() + pose[2]) * lidar.get_sensor_values() + pose[1]
+        x_list = np.cos(angles + pose[2]) * ranges + pose[0]
+        y_list = np.sin(angles + pose[2]) * ranges + pose[1]
 
-        for x,y in zip(x_list, y_list):
+        for x, y in zip(x_list, y_list):
             self.grid.add_value_along_line(pose[0], pose[1], x, y, val=-0.95)
-            
-        self.grid.add_map_points(x_list,y_list,val = 1.95)
-        self.grid.add_map_points(x_list+0.5,y_list+0.5,val = 1.95)
-        self.grid.add_map_points(x_list-0.5,y_list-0.5,val = 1.95)
 
-        # self.grid.add_map_points(x_list+1,y_list+1,val = 0)
-        # self.grid.add_map_points(x_list-1,y_list-1,val = 0)
-        # self.grid.add_map_points(x_list+1.5,y_list+1.5,val = 0)
-        # self.grid.add_map_points(x_list-1.5,y_list-1.5,val = 0)
-           
-        self.grid.occupancy_map = np.clip(self.grid.occupancy_map,-20,20)
+        self.grid.add_map_points(x_list, y_list, val=1.95)
+
+        self.grid.add_map_points(x_list + 0.5, y_list + 0.5, val=1.95)
+        self.grid.add_map_points(x_list - 0.5, y_list - 0.5, val=1.95)
+
+        self.grid.occupancy_map = np.clip(self.grid.occupancy_map, -20, 20)
 
 
 
