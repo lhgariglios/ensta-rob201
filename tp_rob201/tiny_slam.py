@@ -22,7 +22,23 @@ class TinySlam:
         """
         # TODO for TP4
 
-        score = 0
+        dist = lidar.get_sensor_values()
+        angles = lidar.get_ray_angles()
+
+        mask = dist < lidar.max_range
+        dist = dist[mask]
+        angles = angles[mask]
+
+        x = np.cos(angles + pose[2]) * dist + pose[0]
+        y = np.sin(angles + pose[2]) * dist + pose[1]
+
+        x_map, y_map = self.grid.conv_world_to_map(x, y)
+
+        mask = (x_map > 0) & (x_map < self.grid.x_max_map) & (y_map > 0) & (y_map < self.grid.y_max_map)
+        x_map = x_map[mask]
+        y_map = y_map[mask]
+
+        score = np.sum(self.grid.occupancy_map[x_map, y_map])
 
         return score
 
@@ -37,6 +53,18 @@ class TinySlam:
         # TODO for TP4
         corrected_pose = odom_pose
 
+        if (odom_pose_ref is None):
+            odom_pose_ref = self.odom_pose_ref
+
+        d0 = np.sqrt(odom_pose[0]**2 + odom_pose[1]**2)
+        alpha0 = np.atan2(odom_pose[1], odom_pose[0])
+
+        x = odom_pose_ref[0] + d0 * np.cos(odom_pose_ref[2] + alpha0)
+        y = odom_pose_ref[1] + d0 * np.sin(odom_pose_ref[2] + alpha0)
+        theta = odom_pose_ref[2] + odom_pose[2]
+
+        corrected_pose = np.array([x, y, theta])
+
         return corrected_pose
 
     def localise(self, lidar, raw_odom_pose):
@@ -48,6 +76,27 @@ class TinySlam:
         # TODO for TP4
 
         best_score = 0
+        n = 200
+        i = 0
+        sigma = 1
+
+        pose = self.get_corrected_pose(raw_odom_pose)
+        best_score = self._score(lidar,pose)
+        best_pose_ref = self.odom_pose_ref.copy()
+
+        while i < n:
+            offset = np.random.normal(0,sigma,3)
+            offset[2] = np.random.normal(0,sigma/10)
+            pose_ref = best_pose_ref + offset
+            pose = self.get_corrected_pose(raw_odom_pose,best_pose_ref)
+            score = self._score(lidar,pose)
+            if score > best_score:
+                best_score = score
+                best_pose_ref = pose_ref
+            else:
+                i += 1
+
+        self.odom_pose_ref = best_pose_ref
 
         return best_score
 
@@ -58,15 +107,30 @@ class TinySlam:
         pose : [x, y, theta] nparray, corrected pose in world coordinates
         """ 
 
+        ranges = lidar.get_sensor_values()
+        angles = lidar.get_ray_angles()
+
+        mask = ranges < lidar.max_range
+        ranges = ranges[mask]
+        angles = angles[mask]
+
         x_list = np.cos(lidar.get_ray_angles() + pose[2]) * lidar.get_sensor_values() + pose[0]
         y_list = np.sin(lidar.get_ray_angles() + pose[2]) * lidar.get_sensor_values() + pose[1]
 
         for x,y in zip(x_list, y_list):
             self.grid.add_value_along_line(pose[0], pose[1], x, y, val=-0.95)
             
-        self.grid.add_map_points(x_list,y_list,val = 1.99)
-        self.grid.add_map_points(x_list+0.5,y_list+0.5,val = 1)
-        self.grid.add_map_points(x_list-0.5,y_list-0.5,val = 1)
+        self.grid.add_map_points(x_list,y_list,val = 1.95)
+        self.grid.add_map_points(x_list+0.5,y_list+0.5,val = 1.95)
+        self.grid.add_map_points(x_list-0.5,y_list-0.5,val = 1.95)
+
+        # self.grid.add_map_points(x_list+1,y_list+1,val = 0)
+        # self.grid.add_map_points(x_list-1,y_list-1,val = 0)
+        # self.grid.add_map_points(x_list+1.5,y_list+1.5,val = 0)
+        # self.grid.add_map_points(x_list-1.5,y_list-1.5,val = 0)
+           
+        self.grid.occupancy_map = np.clip(self.grid.occupancy_map,-20,20)
+
 
 
         

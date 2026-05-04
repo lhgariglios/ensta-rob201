@@ -33,3 +33,25 @@ class Planner:
         """ Frontier based exploration """
         goal = np.array([0, 0, 0])  # frontier to reach for exploration
         return goal
+    
+    def get_neighbors(self, current_cell): # return the 8 neighbors of a cell
+        x, y = current_cell
+        x_max, y_max = self.grid.occupancy_map.shape
+
+        neighbors = []
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                nx = x + dx
+                ny = y + dy
+                if 0 <= nx < x_max and 0 <= ny < y_max:
+                    neighbors.append((nx, ny))
+        return neighbors
+
+    def heuristic(self, cell1, cell2): # euclidean distance between two cells
+        x1, y1 = cell1
+        x2, y2 = cell2
+        d = np.sqrt( (x2-x1)**2 + (y2-y1)**2 )
+        return d
+

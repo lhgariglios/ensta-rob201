@@ -45,7 +45,7 @@ def potential_field_control(lidar, current_pose, goal_pose):
 
     # Parameters
     K_goal = 0.5
-    K_obst = 5000
+    K_obst = 8000
     safe_dist = 20.0
     d_trans = 40.0
     stop_dist = 20.0
@@ -90,8 +90,8 @@ def potential_field_control(lidar, current_pose, goal_pose):
     w = np.arctan2(grad_total[1], grad_total[0]) * 0.5
 
     # Clamp values to valid ranges [-1, 1]
-    v = np.clip(v, -1.0, 1.0)
-    w = np.clip(w, -1.0, 1.0)
+    v = np.clip(v, -0.3, 0.3)
+    w = np.clip(w, -0.1, 0.1)
     
     command = {"forward": v,
                "rotation": w}

@@ -71,26 +71,46 @@ class MyRobotSlam(RobotAbstract):
         """
         pose = self.odometer_values()
 
-        self.tiny_slam.update_map(self.lidar(), pose)
-        np.clip(self.occupancy_grid.occupancy_map, -40, 40, out=self.occupancy_grid.occupancy_map)
+        if self.counter > 10:
+            self.tiny_slam.localise(self.lidar(), pose)
 
-               
+        pose = self.tiny_slam.get_corrected_pose(pose) 
+        self.tiny_slam.update_map(self.lidar(), pose)
+ 
         if not hasattr(self, 'current_goal'):
-            self.current_goal = np.array([
-                            -160, 0.0,
-                            0.0
-                        ]) 
+
+            self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
+
         elif np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0:
-            self.current_goal += np.array([
-                        np.random.uniform(-50, 50), 
-                        np.random.uniform(-50, 50), 
-                        0.0
-                    ])
-        
+
+            ranges = self.lidar().get_sensor_values()
+            angles = self.lidar().get_ray_angles()
+
+            mask = ranges < self.lidar().max_range+1.5
+            angles = angles[mask]
+            ranges = ranges[mask]
+
+            idx = np.random.choice(len(ranges))
+            distance = ranges[idx]
+
+            safe_distance = 10.0
+            
+            if distance > safe_distance + 5.0:
+                distance_goal = np.random.uniform(safe_distance, distance - 5.0)
+            else:
+                distance_goal = distance * 0.5
+
+            ray_angle = angles[idx] + pose[2]
+
+            x = pose[0] + distance_goal * np.cos(ray_angle)
+            y = pose[1] + distance_goal * np.sin(ray_angle)
+
+            self.current_goal = np.array([x, y, 0])
+
         command = potential_field_control(self.lidar(), pose, self.current_goal)
 
         self.counter += 1
         if self.counter % 10 == 0:
-            self.occupancy_grid.display_plt(pose, self.current_goal)
+            self.occupancy_grid.display_cv(pose, self.current_goal)
 
         return command
