@@ -122,9 +122,6 @@ class TinySlam:
 
         self.grid.add_map_points(x_list, y_list, val=1.95)
 
-        #self.grid.add_map_points(x_list + 0.2, y_list + 0.2, val=1.95)
-        #self.grid.add_map_points(x_list - 0.2, y_list - 0.2, val=1.95)
-
         self.grid.occupancy_map = np.clip(self.grid.occupancy_map, -20, 20)
 
 

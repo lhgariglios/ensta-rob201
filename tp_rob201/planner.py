@@ -75,11 +75,10 @@ class Planner:
         # a margin in the walls
         self.map_walls = copy.deepcopy(self.grid.occupancy_map)
 
-        # Dilate walls to create a safety margin around obstacles
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
-        self.map_walls = cv2.dilate(self.map_walls.astype(np.uint8), kernel, iterations=1)
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25,25))
+        self.map_walls = cv2.dilate(self.map_walls, kernel, iterations=1)
 
-        # cv2.imshow("map_walls", self.map_walls)
+        cv2.imshow("map_walls", self.map_walls)
 
         # min heap to contain values to explore next
         open_set = [(0.0, start)]
@@ -109,6 +108,9 @@ class Planner:
 
             neighbours = self.get_neighbors(current_cell)
             for cell in neighbours:
+                # if cell is a wall, skip it
+                if self.map_walls[cell[0], cell[1]] > 0:
+                     continue
                 tentative_g_score = g_score[current_cell] + self.heuristic(current_cell, cell)
                 if tentative_g_score < g_score[cell]:
                     # better path, recording it

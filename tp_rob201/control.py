@@ -90,7 +90,7 @@ def potential_field_control(lidar, current_pose, goal_pose, stop_dist: float = 2
     w = np.arctan2(grad_total[1], grad_total[0]) * 0.5
 
     # Clamp values to valid ranges [-1, 1]
-    v = np.clip(v, -0.3, 0.3)
+    v = np.clip(v, -1, 1)
     w = np.clip(w, -0.1, 0.1)
     
     command = {"forward": v,
