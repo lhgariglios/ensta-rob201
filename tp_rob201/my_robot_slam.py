@@ -83,49 +83,52 @@ class MyRobotSlam(RobotAbstract):
  
         if not hasattr(self, 'current_goal'):
 
-            self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
+            #self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
 
-            # Plan path to the new goal
-            self.path = self.planner.plan(pose, self.current_goal)
-            if self.path is not None:
-                self.path = self.path.T
-                self.path_index = 0
-            else:
-                self.path = None
+            self.current_goal = np.array([-400, -100, 0])
 
-        elif np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0:
+        # elif np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0:
 
-            ranges = self.lidar().get_sensor_values()
-            angles = self.lidar().get_ray_angles()
+        #     ranges = self.lidar().get_sensor_values()
+        #     angles = self.lidar().get_ray_angles()
 
-            mask = ranges < self.lidar().max_range+1.5
-            angles = angles[mask]
-            ranges = ranges[mask]
+        #     mask = ranges < self.lidar().max_range+1.5
+        #     angles = angles[mask]
+        #     ranges = ranges[mask]
 
-            idx = np.random.choice(len(ranges))
-            distance = ranges[idx]
+        #     idx = np.random.choice(len(ranges))
+        #     distance = ranges[idx]
 
-            safe_distance = 10.0
+        #     safe_distance = 10.0
             
-            if distance > safe_distance + 5.0:
-                distance_goal = np.random.uniform(safe_distance, distance - 5.0)
-            else:
-                distance_goal = distance * 0.5
+        #     if distance > safe_distance + 5.0:
+        #         distance_goal = np.random.uniform(safe_distance, distance - 5.0)
+        #     else:
+        #         distance_goal = distance * 0.5
 
-            ray_angle = angles[idx] + pose[2]
+        #     ray_angle = angles[idx] + pose[2]
 
-            x = pose[0] + distance_goal * np.cos(ray_angle)
-            y = pose[1] + distance_goal * np.sin(ray_angle)
+        #     x = pose[0] + distance_goal * np.cos(ray_angle)
+        #     y = pose[1] + distance_goal * np.sin(ray_angle)
 
-            self.current_goal = np.array([x, y, 0])
+        #     self.current_goal = np.array([x, y, 0])
 
+        #     # Plan path to the new goal
+        #     self.path = self.planner.plan(pose, self.current_goal)
+        #     if self.path is not None:
+        #         self.path = self.path.T
+        #         self.path_index = 0
+        #     else:
+        #         self.path = None
+
+        if self.counter % 50 == 0:
             # Plan path to the new goal
             self.path = self.planner.plan(pose, self.current_goal)
             if self.path is not None:
                 self.path = self.path.T
                 self.path_index = 0
             else:
-                self.path = None
+                self.path = None          
 
         if self.path is not None and self.path_index < len(self.path):
             target = self.path[self.path_index]
@@ -144,6 +147,7 @@ class MyRobotSlam(RobotAbstract):
             command = potential_field_control(self.lidar(), pose, target_pose)
 
         self.counter += 1
+        
         if self.counter % 10 == 0:
             traj = self.path.T if self.path is not None else None
             self.occupancy_grid.display_cv(pose, self.current_goal, traj)

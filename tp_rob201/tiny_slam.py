@@ -110,7 +110,7 @@ class TinySlam:
         ranges = lidar.get_sensor_values()
         angles = lidar.get_ray_angles()
 
-        mask = ranges < lidar.max_range
+        mask = ranges < lidar.max_range - 20
         ranges = ranges[mask]
         angles = angles[mask]
 
@@ -122,8 +122,8 @@ class TinySlam:
 
         self.grid.add_map_points(x_list, y_list, val=1.95)
 
-        self.grid.add_map_points(x_list + 0.5, y_list + 0.5, val=1.95)
-        self.grid.add_map_points(x_list - 0.5, y_list - 0.5, val=1.95)
+        #self.grid.add_map_points(x_list + 0.2, y_list + 0.2, val=1.95)
+        #self.grid.add_map_points(x_list - 0.2, y_list - 0.2, val=1.95)
 
         self.grid.occupancy_map = np.clip(self.grid.occupancy_map, -20, 20)
 

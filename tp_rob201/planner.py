@@ -68,28 +68,25 @@ class Planner:
         goal : [x, y, theta] nparray, goal pose in world coordinates (theta unused)
         """
 
-
         start: Tuple[int, int] = self.grid.conv_world_to_map(start[0], start[1])
         goal: Tuple[int, int] = self.grid.conv_world_to_map(goal[0], goal[1])
-
 
         # creates a copy of occupancy map to modify it and take into account
         # a margin in the walls
         self.map_walls = copy.deepcopy(self.grid.occupancy_map)
-        # TODO for TP5: dilate walls in self.map_walls to take into account a margin around obstacles
 
+        # Dilate walls to create a safety margin around obstacles
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7,7))
+        self.map_walls = cv2.dilate(self.map_walls.astype(np.uint8), kernel, iterations=1)
 
-        # cv2.imshow("map_walls", sel.map_walls)
-
+        # cv2.imshow("map_walls", self.map_walls)
 
         # min heap to contain values to explore next
         open_set = [(0.0, start)]
         heapq.heapify(open_set)
 
-
         # dictionary to trace back route
         came_from = {}
-
 
         # cost to get to each cell
         g_score = defaultdict(lambda: math.inf)
@@ -109,7 +106,6 @@ class Planner:
                 continue
             if current_cell == goal:
                 return self.reconstruct_path(came_from, goal)
-
 
             neighbours = self.get_neighbors(current_cell)
             for cell in neighbours:
