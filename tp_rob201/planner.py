@@ -78,7 +78,7 @@ class Planner:
         kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25,25))
         self.map_walls = cv2.dilate(self.map_walls, kernel, iterations=1)
 
-        cv2.imshow("map_walls", self.map_walls)
+        #cv2.imshow("map_walls", self.map_walls)
 
         # min heap to contain values to explore next
         open_set = [(0.0, start)]

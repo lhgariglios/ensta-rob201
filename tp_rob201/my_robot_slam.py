@@ -49,6 +49,7 @@ class MyRobotSlam(RobotAbstract):
         # path planning
         self.path = None
         self.path_index = 0
+        self.current_goal = None
 
     def control(self):
         """
@@ -75,51 +76,32 @@ class MyRobotSlam(RobotAbstract):
         """
         pose = self.odometer_values()
 
+        # Localisation and mapping
+
         if self.counter > 10:
             self.tiny_slam.localise(self.lidar(), pose)
 
         pose = self.tiny_slam.get_corrected_pose(pose) 
         self.tiny_slam.update_map(self.lidar(), pose)
- 
-        if not hasattr(self, 'current_goal'):
 
-            #self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
+        # Frontier-based goal selection
+        goal_reached = (
+            self.current_goal is not None
+            and np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0
+        )
 
-            self.current_goal = np.array([-400, -100, 0])
+        if self.current_goal is None or goal_reached:
+            self.path = None
+            self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
+            #self.current_goal = self.planner.explore_frontiers(pose)
+            self.path = self.planner.plan(pose, self.current_goal)
+            if self.path is not None:
+                self.path = self.path.T
+                self.path_index = 0           
 
-        # elif np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0:
+        #self.current_goal = np.array([-400, -100, 0])
 
-        #     ranges = self.lidar().get_sensor_values()
-        #     angles = self.lidar().get_ray_angles()
-
-        #     mask = ranges < self.lidar().max_range+1.5
-        #     angles = angles[mask]
-        #     ranges = ranges[mask]
-
-        #     idx = np.random.choice(len(ranges))
-        #     distance = ranges[idx]
-
-        #     safe_distance = 10.0
-            
-        #     if distance > safe_distance + 5.0:
-        #         distance_goal = np.random.uniform(safe_distance, distance - 5.0)
-        #     else:
-        #         distance_goal = distance * 0.5
-
-        #     ray_angle = angles[idx] + pose[2]
-
-        #     x = pose[0] + distance_goal * np.cos(ray_angle)
-        #     y = pose[1] + distance_goal * np.sin(ray_angle)
-
-        #     self.current_goal = np.array([x, y, 0])
-
-        #     # Plan path to the new goal
-        #     self.path = self.planner.plan(pose, self.current_goal)
-        #     if self.path is not None:
-        #         self.path = self.path.T
-        #         self.path_index = 0
-        #     else:
-        #         self.path = None
+        # Path planning and following
 
         if self.counter % 50 == 0:
             # Plan path to the new goal
@@ -132,24 +114,31 @@ class MyRobotSlam(RobotAbstract):
 
         if self.path is not None and self.path_index < len(self.path):
             target = self.path[self.path_index]
-            if np.linalg.norm(target - pose[:2]) < 5.0:  # close to waypoint
+
+            if np.linalg.norm(target - pose[:2]) < 10.0:  # close to waypoint
                 self.path_index += 1
+
             if self.path_index < len(self.path):
                 target = self.path[self.path_index]
             else:
                 target = self.current_goal[:2]  # end of path, go to goal
 
             target_pose = np.array([target[0], target[1], 0.0])
-            command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=5.0)
+            command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=10.0)
+
         else:
+            # No path: go directly toward the goal
             target = self.current_goal[:2]
             target_pose = np.array([target[0], target[1], 0.0])
             command = potential_field_control(self.lidar(), pose, target_pose)
 
-        self.counter += 1
         
+        # Display every 10 steps
+
         if self.counter % 10 == 0:
             traj = self.path.T if self.path is not None else None
             self.occupancy_grid.display_cv(pose, self.current_goal, traj)
+
+        self.counter += 1
 
         return command
