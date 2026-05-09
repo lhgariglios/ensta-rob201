@@ -106,37 +106,50 @@ class TinySlam:
 
         return corrected_pose
     
-    def localise(self, lidar, raw_odom_pose):
+    def localise(self, lidar, raw_odom_pose, n_iter=5, pop_size=50, elite_frac=0.2):
         """
         Compute the robot position wrt the map, and updates the odometry reference
         lidar : placebot object with lidar data
         odom : [x, y, theta] nparray, raw odometry position
         """
-        # TODO for TP4
+        # Cross-Entropy Method (CEM)
 
-        best_score = 0
-        n = 200
-        i = 0
-        sigma = 1
+        sigma_min  = np.array([0.2, 0.2, 0.005])
+ 
+        n_elite = max(2, int(pop_size * elite_frac))
+ 
+        mu    = np.zeros(3)
+        sigma = np.array([2.0, 2.0, 0.05])
 
         pose = self.get_corrected_pose(raw_odom_pose)
         best_score = self._score(lidar,pose)
         best_pose_ref = self.odom_pose_ref.copy()
 
-        while i < n:
-            offset = np.random.normal(0,sigma,3)
-            offset[2] = np.random.normal(0,sigma/10)
-            pose_ref = best_pose_ref + offset
-            pose = self.get_corrected_pose(raw_odom_pose,best_pose_ref)
-            score = self._score(lidar,pose)
-            if score > best_score:
-                best_score = score
-                best_pose_ref = pose_ref
-            else:
-                i += 1
+        for i in range(n_iter):
+            # Sample offsets
+            samples = np.random.randn(pop_size, 3) * sigma + mu
+
+            # Evaluate
+            scores = np.empty(pop_size)
+            for k, offset in enumerate(samples):
+                pose_ref_k = best_pose_ref + offset
+                pose_k     = self.get_corrected_pose(raw_odom_pose, pose_ref_k)
+                scores[k]  = self._score(lidar, pose_k)
+
+            # 3. Select highest scores
+            elite_idx  = np.argsort(scores)[-n_elite:]
+            elite      = samples[elite_idx]
+            scores = scores[elite_idx]
+
+            if scores[-1] > best_score:
+                best_score = scores[-1]
+                best_pose_ref = best_pose_ref + elite[np.argmax(scores)]
+            
+            # Re-fit distribution on elite
+            mu    = elite.mean(axis=0)
+            sigma = elite.std(axis=0) + sigma_min 
 
         self.odom_pose_ref = best_pose_ref
-
         return best_score
 
     def update_map(self, lidar, pose):
