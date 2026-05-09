@@ -9,7 +9,7 @@ FREE_FAR    = -0.3 # free far from the robot
  
 OCC_PEAK    =  3.0 # obstacle
 OCC_SIGMA   =  1.2 # cells around the obstacle
-OCC_WINGS   =  2   # neighbor cells updated
+OCC_WINGS   =  1   # neighbor cells updated
  
 CLIP_MAX    = 20.0 # cell saturation
  

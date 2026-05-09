@@ -75,7 +75,7 @@ class Planner:
         # a margin in the walls
         self.map_walls = copy.deepcopy(self.grid.occupancy_map)
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (25,25))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15,15))
         self.map_walls = cv2.dilate(self.map_walls, kernel, iterations=1)
 
         #cv2.imshow("map_walls", self.map_walls)
@@ -116,7 +116,7 @@ class Planner:
                     # better path, recording it
                     came_from[cell] = current_cell
                     g_score[cell] = tentative_g_score
-                    f_score[cell] = tentative_g_score + self.heuristic(cell, goal)
+                    f_score[cell] = tentative_g_score + 5*self.heuristic(cell, goal)
                     heapq.heappush(open_set, (f_score[cell], cell))
 
 
