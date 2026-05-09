@@ -78,11 +78,12 @@ class MyRobotSlam(RobotAbstract):
 
         # Localisation and mapping
 
-        if self.counter > 10:
+        if self.counter > 10 and self.counter % 5 == 0:
             self.tiny_slam.localise(self.lidar(), pose)
 
-        pose = self.tiny_slam.get_corrected_pose(pose) 
-        self.tiny_slam.update_map(self.lidar(), pose)
+        if self.counter % 5 == 0:
+            pose = self.tiny_slam.get_corrected_pose(pose) 
+            self.tiny_slam.update_map(self.lidar(), pose)
 
         # Frontier-based goal selection
         goal_reached = (
