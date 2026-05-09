@@ -94,43 +94,44 @@ class MyRobotSlam(RobotAbstract):
             self.path = None
             self.current_goal = np.array([np.random.uniform(-100, 100), np.random.uniform(-100, 100), 0])
             #self.current_goal = self.planner.explore_frontiers(pose)
-            self.path = self.planner.plan(pose, self.current_goal)
+            #self.path = self.planner.plan(pose, self.current_goal)
             if self.path is not None:
                 self.path = self.path.T
                 self.path_index = 0           
 
         #self.current_goal = np.array([-400, -100, 0])
+        command = potential_field_control(self.lidar(), pose, self.current_goal)
 
         # Path planning and following
 
-        if self.counter % 50 == 0:
-            # Plan path to the new goal
-            self.path = self.planner.plan(pose, self.current_goal)
-            if self.path is not None:
-                self.path = self.path.T
-                self.path_index = 0
-            else:
-                self.path = None          
+        # if self.counter % 50 == 0:
+        #     # Plan path to the new goal
+        #     self.path = self.planner.plan(pose, self.current_goal)
+        #     if self.path is not None:
+        #         self.path = self.path.T
+        #         self.path_index = 0
+        #     else:
+        #         self.path = None          
 
-        if self.path is not None and self.path_index < len(self.path):
-            target = self.path[self.path_index]
+        # if self.path is not None and self.path_index < len(self.path):
+        #     target = self.path[self.path_index]
 
-            if np.linalg.norm(target - pose[:2]) < 10.0:  # close to waypoint
-                self.path_index += 1
+        #     if np.linalg.norm(target - pose[:2]) < 10.0:  # close to waypoint
+        #         self.path_index += 1
 
-            if self.path_index < len(self.path):
-                target = self.path[self.path_index]
-            else:
-                target = self.current_goal[:2]  # end of path, go to goal
+        #     if self.path_index < len(self.path):
+        #         target = self.path[self.path_index]
+        #     else:
+        #         target = self.current_goal[:2]  # end of path, go to goal
 
-            target_pose = np.array([target[0], target[1], 0.0])
-            command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=10.0)
+        #     target_pose = np.array([target[0], target[1], 0.0])
+        #     command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=10.0)
 
-        else:
-            # No path: go directly toward the goal
-            target = self.current_goal[:2]
-            target_pose = np.array([target[0], target[1], 0.0])
-            command = potential_field_control(self.lidar(), pose, target_pose)
+        # else:
+        #     # No path: go directly toward the goal
+        #     target = self.current_goal[:2]
+        #     target_pose = np.array([target[0], target[1], 0.0])
+        #     command = potential_field_control(self.lidar(), pose, target_pose)
 
         
         # Display every 10 steps

@@ -8,7 +8,7 @@ import copy
 import heapq
 import math
 from collections import defaultdict
-from typing import Tuple
+from typing import Optional,Tuple
 
 
 import cv2
@@ -125,9 +125,7 @@ class Planner:
         return None
 
 
-    def explore_frontiers(self):
-        """ Frontier based exploration """
-        goal = np.array([0, 0, 0])  # frontier to reach for exploration
-        return goal
-
-
+    # def explore_frontiers(self):
+    #     """ Frontier based exploration """
+    #     goal = np.array([0, 0, 0])  # frontier to reach for exploration
+    #     return goal
