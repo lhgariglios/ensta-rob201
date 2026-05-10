@@ -75,10 +75,13 @@ class Planner:
         # a margin in the walls
         self.map_walls = copy.deepcopy(self.grid.occupancy_map)
 
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15,15))
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (20,20))
         self.map_walls = cv2.dilate(self.map_walls, kernel, iterations=1)
 
         #cv2.imshow("map_walls", self.map_walls)
+
+        if self.map_walls[goal[0], goal[1]] > 0.5:
+            return None
 
         # min heap to contain values to explore next
         open_set = [(0.0, start)]

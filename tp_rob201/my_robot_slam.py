@@ -84,6 +84,12 @@ class MyRobotSlam(RobotAbstract):
         if self.counter % 5 == 0:
             pose = self.tiny_slam.get_corrected_pose(pose) 
             self.tiny_slam.update_map(self.lidar(), pose)
+        else:
+            pose = self.tiny_slam.get_corrected_pose(pose)
+
+        if self.counter == 0:
+
+            self.current_goal = np.array([-50, -100, 0])
 
         # Frontier-based goal selection
         goal_reached = (
@@ -91,61 +97,56 @@ class MyRobotSlam(RobotAbstract):
             and np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0
         )
 
-        # if self.current_goal is None or goal_reached:
-        #     self.path = None
-        #     self.current_goal = np.array([np.random.uniform(-500, 100), np.random.uniform(-500, 100), 0])
-        #     #self.current_goal = self.planner.explore_frontiers(pose)
-        #     self.path = self.planner.plan(pose, self.current_goal)
-        #     if self.path is not None:
-        #         self.path = self.path.T
-        #         self.path_index = 0           
-
-        if self.counter == 0:
-
-            self.current_goal = np.array([-50, -100, 0])
-        
-        command = potential_field_control(self.lidar(), pose, self.current_goal)
-
         if self.current_goal is None or goal_reached:
+            self.path = None
             frontiers = self.planner.get_frontiers()
             clusters  = self.planner.cluster_frontiers(frontiers)
+            #self.current_goal = np.array([np.random.uniform(-500, 100), np.random.uniform(-500, 100), 0])
+            #self.current_goal = self.planner.explore_frontiers(pose)
             self.current_goal = self.planner.select_best_frontier(clusters, pose)
 
-        # if self.current_goal is None:
-        #     # Exploration terminée (plus de frontières)
-        #     print("Exploration complete!")
-        #     return {"forward": 0.0, "rotation": 0.0}
+            if self.current_goal is None:
+                print("Exploration complete!")
+                return {"forward": 0.0, "rotation": 0.0}
+        
+            self.path = self.planner.plan(pose, self.current_goal)
 
-        # # Path planning and following
+            if self.path is not None:
+                self.path = self.path.T
+                self.path_index = 0
+            else:
+                self.path = None                  
+        
+        #command = potential_field_control(self.lidar(), pose, self.current_goal)          
+            
+        # Path planning and following
 
-        # if self.counter % 50 == 0:
-        #     # Plan path to the new goal
-        #     self.path = self.planner.plan(pose, self.current_goal)
-        #     if self.path is not None:
-        #         self.path = self.path.T
-        #         self.path_index = 0
-        #     else:
-        #         self.path = None          
+        if self.path is None and self.counter % 50 == 0:
+            # Plan path to the new goal
+            self.path = self.planner.plan(pose, self.current_goal)
+            if self.path is not None:
+                self.path = self.path.T
+                self.path_index = 0
+            else:
+                self.path = None          
 
-        # if self.path is not None and self.path_index < len(self.path):
-        #     target = self.path[self.path_index]
+        if self.path is not None and self.path_index < len(self.path):
+            target = self.path[self.path_index]
 
-        #     if np.linalg.norm(target - pose[:2]) < 10.0:  # close to waypoint
-        #         self.path_index += 1
+            if np.linalg.norm(target - pose[:2]) < 10.0:  # close to waypoint
+                self.path_index += 1
 
-        #     if self.path_index < len(self.path):
-        #         target = self.path[self.path_index]
-        #     else:
-        #         target = self.current_goal[:2]  # end of path, go to goal
+            if self.path_index < len(self.path):
+                target = self.path[self.path_index]
+            else:
+                target = self.current_goal[:2]  # end of path, go to goal
 
-        #     target_pose = np.array([target[0], target[1], 0.0])
-        #     command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=10.0)
+            target_pose = np.array([target[0], target[1], 0.0])
+            command = potential_field_control(self.lidar(), pose, target_pose, stop_dist=10.0)
 
-        # else:
-        #     # No path: go directly toward the goal
-        #     target = self.current_goal[:2]
-        #     target_pose = np.array([target[0], target[1], 0.0])
-        #     command = potential_field_control(self.lidar(), pose, target_pose)
+        else:
+            # No path: go directly toward the goal
+            command = potential_field_control(self.lidar(), pose, self.current_goal)
 
         
         # Display every 10 steps

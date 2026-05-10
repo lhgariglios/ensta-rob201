@@ -101,7 +101,7 @@ def potential_field_control(lidar, current_pose, goal_pose, stop_dist: float = 2
 
     # Parameters
     K_goal = 0.5
-    K_obst = 8000
+    K_obst = 5000
     safe_dist = 20.0
     d_trans = 50.0
 
