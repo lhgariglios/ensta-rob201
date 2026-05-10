@@ -140,6 +140,9 @@ class Planner:
         free_threshold = -0.5 # Cell is free if below zero 
         unknown_low = -0.5 # Cell is unknown if its value is close to zero 
         unknown_high = 0.5
+        obstacle_threshold = 0.5  # Cell is an obstacle if above zero
+
+        wall_clearance_cells=8 
 
         occ = self.grid.occupancy_map
         x_max, y_max = occ.shape
@@ -149,6 +152,12 @@ class Planner:
 
         # Mask of unknown cells
         unknown_mask = (occ >= unknown_low) & (occ <= unknown_high)
+
+        # Mask of obstacle cells
+        obstacle_mask = occ > obstacle_threshold
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(2 * wall_clearance_cells + 1, 2 * wall_clearance_cells + 1))
+        near_wall = cv2.dilate(obstacle_mask.astype(np.uint8), kernel) > 0
 
         # Check if a cell has unknown neighbours
         has_unknown_neighbour = np.zeros((x_max, y_max), dtype=bool)
@@ -165,7 +174,7 @@ class Planner:
                 has_unknown_neighbour[dst_x, dst_y] |= unknown_mask[src_x, src_y]
 
         # A frontier cell must be both free AND adjacent to an unknown cell
-        frontier_mask = free_mask & has_unknown_neighbour
+        frontier_mask = free_mask & has_unknown_neighbour & ~near_wall
 
         # --- Convert map indices → world coordinates ---
         xs_map, ys_map = np.where(frontier_mask)   # arrays of map indices
@@ -216,9 +225,10 @@ class Planner:
                 continue
 
             pts = frontiers[cluster_indices]
+            centroid = pts.mean(axis=0)
             clusters.append({
                 'points':   pts,
-                'centroid': pts.mean(axis=0),
+                'centroid': centroid,
                 'size':     len(pts),
             })
 
@@ -245,4 +255,6 @@ class Planner:
         best    = int(np.argmax(utility))
 
         centroid = clusters[best]['centroid']
+        
         return np.array([centroid[0], centroid[1], 0.0])
+    

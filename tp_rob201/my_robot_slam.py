@@ -51,6 +51,9 @@ class MyRobotSlam(RobotAbstract):
         self.path_index = 0
         self.current_goal = None
 
+        # Start position for return
+        self.start_pose = self.corrected_pose
+
     def control(self):
         """
         Main control function executed at each time step
@@ -104,25 +107,26 @@ class MyRobotSlam(RobotAbstract):
             #self.current_goal = np.array([np.random.uniform(-500, 100), np.random.uniform(-500, 100), 0])
             #self.current_goal = self.planner.explore_frontiers(pose)
             self.current_goal = self.planner.select_best_frontier(clusters, pose)
-
-            if self.current_goal is None:
-                print("Exploration complete!")
-                return {"forward": 0.0, "rotation": 0.0}
         
-            self.path = self.planner.plan(pose, self.current_goal)
-
-            if self.path is not None:
-                self.path = self.path.T
-                self.path_index = 0
+            if self.current_goal is None:
+                # No more frontiers → return to start
+                self.current_goal = self.start_pose.copy()
+                self.path = self.planner.plan(pose, self.start_pose)
+                if self.path is not None:
+                    self.path = self.path.T
+                    self.path_index = 0
             else:
-                self.path = None                  
+                self.path = self.planner.plan(pose, self.current_goal)
+                if self.path is not None:
+                    self.path = self.path.T
+                    self.path_index = 0
+             
         
         #command = potential_field_control(self.lidar(), pose, self.current_goal)          
             
         # Path planning and following
 
-        if self.path is None and self.counter % 50 == 0:
-            # Plan path to the new goal
+        if self.counter % 100 == 0:
             self.path = self.planner.plan(pose, self.current_goal)
             if self.path is not None:
                 self.path = self.path.T
