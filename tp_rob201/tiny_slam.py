@@ -13,7 +13,7 @@ OCC_WINGS   =  1   # neighbor cells updated
  
 CLIP_MAX    = 20.0 # cell saturation
  
-MIN_CELL_DIST = 1  # subsample
+MIN_CELL_DIST = 2 # subsample
 
 # Consider only cells at least this far from the robot for map update and scoring, to avoid biasing the map with the same cells at each scan
 
@@ -176,7 +176,6 @@ class TinySlam:
                 # Free far from the robot
                 self.grid.add_value_along_line(x_mid, y_mid, x, y, val=FREE_FAR)
  
-            # Robot → Obstacle en coordonnées monde
             if d > 1e-3:
                 ux = (x - rx) / d
                 uy = (y - ry) / d

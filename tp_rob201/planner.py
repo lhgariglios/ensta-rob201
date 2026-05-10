@@ -3,20 +3,15 @@ Planner class
 Implementation of A*
 """
 
-
 import copy
 import heapq
 import math
 from collections import defaultdict
 from typing import Optional,Tuple
 
-
 import cv2
 import numpy as np
 from occupancy_grid import OccupancyGrid
-
-
-
 
 class Planner:
     """Simple occupancy grid Planner"""
@@ -127,12 +122,6 @@ class Planner:
         print('failed getting to objective')
         return None
 
-
-    # def explore_frontiers(self):
-    #     """ Frontier based exploration """
-    #     goal = np.array([0, 0, 0])  # frontier to reach for exploration
-    #     return goal
-
     # Detect frontiers in the map
 
     def get_frontiers(self):
@@ -176,7 +165,6 @@ class Planner:
         # A frontier cell must be both free AND adjacent to an unknown cell
         frontier_mask = free_mask & has_unknown_neighbour & ~near_wall
 
-        # --- Convert map indices → world coordinates ---
         xs_map, ys_map = np.where(frontier_mask)   # arrays of map indices
         if len(xs_map) == 0:
             return np.empty((0, 2))                # no frontier found

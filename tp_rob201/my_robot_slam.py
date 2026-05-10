@@ -94,7 +94,7 @@ class MyRobotSlam(RobotAbstract):
 
             self.current_goal = np.array([-50, -100, 0])
 
-        # Frontier-based goal selection
+        # Frontier based goal selection
         goal_reached = (
             self.current_goal is not None
             and np.linalg.norm(self.current_goal[:2] - pose[:2]) < 20.0
@@ -104,12 +104,10 @@ class MyRobotSlam(RobotAbstract):
             self.path = None
             frontiers = self.planner.get_frontiers()
             clusters  = self.planner.cluster_frontiers(frontiers)
-            #self.current_goal = np.array([np.random.uniform(-500, 100), np.random.uniform(-500, 100), 0])
-            #self.current_goal = self.planner.explore_frontiers(pose)
             self.current_goal = self.planner.select_best_frontier(clusters, pose)
         
             if self.current_goal is None:
-                # No more frontiers → return to start
+                # No more frontiers, return to start
                 self.current_goal = self.start_pose.copy()
                 self.path = self.planner.plan(pose, self.start_pose)
                 if self.path is not None:
@@ -120,9 +118,7 @@ class MyRobotSlam(RobotAbstract):
                 if self.path is not None:
                     self.path = self.path.T
                     self.path_index = 0
-             
-        
-        #command = potential_field_control(self.lidar(), pose, self.current_goal)          
+               
             
         # Path planning and following
 
