@@ -116,7 +116,7 @@ class Planner:
                     # better path, recording it
                     came_from[cell] = current_cell
                     g_score[cell] = tentative_g_score
-                    f_score[cell] = tentative_g_score + 5*self.heuristic(cell, goal)
+                    f_score[cell] = tentative_g_score + self.heuristic(cell, goal)
                     heapq.heappush(open_set, (f_score[cell], cell))
 
 
@@ -129,3 +129,117 @@ class Planner:
     #     """ Frontier based exploration """
     #     goal = np.array([0, 0, 0])  # frontier to reach for exploration
     #     return goal
+
+    # Detect frontiers in the map
+
+    def get_frontiers(self):
+
+        free_threshold = -0.5 # Cell is free if below zero 
+        unknown_low = -0.5 # Cell is unknown if its value is close to zero 
+        unknown_high = 0.5
+
+        occ = self.grid.occupancy_map
+        x_max, y_max = occ.shape
+
+        # Mask of free cells
+        free_mask = occ < free_threshold
+
+        # Mask of unknown cells
+        unknown_mask = (occ >= unknown_low) & (occ <= unknown_high)
+
+        # Check if a cell has unknown neighbours
+        has_unknown_neighbour = np.zeros((x_max, y_max), dtype=bool)
+
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
+                # Slice source and destination so we stay inside bounds
+                src_x  = slice(max(0, -dx),  x_max + min(0, -dx))
+                src_y  = slice(max(0, -dy),  y_max + min(0, -dy))
+                dst_x  = slice(max(0,  dx),  x_max + min(0,  dx))
+                dst_y  = slice(max(0,  dy),  y_max + min(0,  dy))
+                has_unknown_neighbour[dst_x, dst_y] |= unknown_mask[src_x, src_y]
+
+        # A frontier cell must be both free AND adjacent to an unknown cell
+        frontier_mask = free_mask & has_unknown_neighbour
+
+        # --- Convert map indices → world coordinates ---
+        xs_map, ys_map = np.where(frontier_mask)   # arrays of map indices
+        if len(xs_map) == 0:
+            return np.empty((0, 2))                # no frontier found
+
+        x_world, y_world = self.grid.conv_map_to_world(xs_map, ys_map)
+        frontiers_world = np.column_stack((x_world, y_world))
+
+        return frontiers_world
+    
+    # Group the frontiers
+
+    def cluster_frontiers(self, frontiers):
+
+        min_cluster_size = 5
+        cluster_radius = cluster_radius = 3 * self.grid.resolution
+
+        if len(frontiers) == 0:
+            return []          
+
+        n = len(frontiers)
+        visited = np.zeros(n, dtype=bool)
+        clusters = []
+
+        for seed_idx in range(n):
+            if visited[seed_idx]:
+                continue
+
+            cluster_indices = []
+            queue = [seed_idx]
+            visited[seed_idx] = True
+
+            while queue:
+                current = queue.pop()
+                cluster_indices.append(current)
+
+                # Find all unvisited neighbours within cluster_radius
+                dists = np.linalg.norm(frontiers - frontiers[current], axis=1)
+                neighbours = np.where((dists <= cluster_radius) & ~visited)[0]
+
+                for nb in neighbours:
+                    visited[nb] = True
+                    queue.append(nb)
+
+            # Filter clusters that are too small
+            if len(cluster_indices) < min_cluster_size:
+                continue
+
+            pts = frontiers[cluster_indices]
+            clusters.append({
+                'points':   pts,
+                'centroid': pts.mean(axis=0),
+                'size':     len(pts),
+            })
+
+        return clusters
+
+    # Chose the cluster based in its size and proximity to the robot
+
+    def select_best_frontier(self, clusters, robot_pose, w_size=1.0, w_dist=2.0):
+
+        if not clusters:
+            return None
+
+        sizes = np.array([c['size']     for c in clusters], dtype=float)
+        dists = np.array([
+            np.linalg.norm(c['centroid'] - robot_pose[:2])
+            for c in clusters
+        ], dtype=float)
+
+        # Normalise to [0, 1]  (avoid division by zero with clip)
+        size_norm = sizes / (sizes.max() + 1e-9)
+        dist_norm = dists / (dists.max() + 1e-9)
+
+        utility = w_size * size_norm - w_dist * dist_norm
+        best    = int(np.argmax(utility))
+
+        centroid = clusters[best]['centroid']
+        return np.array([centroid[0], centroid[1], 0.0])
